@@ -1,0 +1,15 @@
+//
+// DO NOT MODIFY THIS FILE.
+//
+// This file describes the tokens that will be available to the parser
+// that uses the grammar described in Simple.cfg.
+
+lexer grammar SimpleLexer;
+
+X
+  :  'x'
+  ;
+
+WS
+  :  (' ' | '\t' | '\n' | '\r' | '\f')+ -> skip
+  ; 

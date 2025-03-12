@@ -1,0 +1,41 @@
+//
+// DO NOT MODIFY THIS FILE.
+//
+// This file describes the tokens that will be available to the parser
+// that uses the grammar described in Tiny.cfg.
+
+lexer grammar TinyLexer;
+
+IF : 'if' ;
+THEN : 'then' ;
+ELSE : 'else' ;
+END : 'end' ;
+REPEAT : 'repeat' ;
+UNTIL : 'until' ;
+READ : 'read' ;
+WRITE : 'write' ;
+OPAREN : '(' ;
+CPAREN : ')' ;
+
+PLUS: '+' ;
+MINUS: '-' ;
+MULTIPLY: '*' ;
+DIVIDE: '/' ;
+LT: '<' ;
+EQUAL: '=' ;
+
+NUM : DIGIT+ ;
+ID : LETTER+ ;
+
+COMMENT
+  :   ( '//' ~[\r\n]* '\r'? '\n'
+      | '/*' .*? '*/'
+      ) -> skip
+  ;
+
+WS
+  :  (' ' | '\t' | '\n' | '\r' | '\f')+ -> skip
+  ; 
+
+fragment LETTER : ('a'..'z' | 'A'..'Z');
+fragment DIGIT  : ('0'..'9');

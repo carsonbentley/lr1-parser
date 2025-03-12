@@ -1,0 +1,19 @@
+//
+// DO NOT MODIFY THIS FILE.
+//
+// This file describes the tokens that will be available to the parser
+// that uses the grammar described in Paren.cfg.
+
+lexer grammar ParenLexer;
+
+OPAREN
+  :  '('
+  ;
+
+CPAREN
+  :  ')'
+  ;
+
+WS
+  :  (' ' | '\t' | '\n' | '\r' | '\f')+ -> skip
+  ; 

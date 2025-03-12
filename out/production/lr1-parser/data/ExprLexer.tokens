@@ -1,0 +1,39 @@
+//
+// DO NOT MODIFY THIS FILE.
+//
+// This file describes the tokens that will be available to the parser
+// that uses the grammar described in Expr.cfg.
+
+lexer grammar ExprLexer;
+
+PLUS: '+' ;
+MINUS: '-' ;
+MULTIPLY: '*' ;
+DIVIDE: '/' ;
+OPAREN: '(' ;
+CPAREN: ')' ;
+
+FLOAT
+  :  DIGIT+ '.' DIGIT+
+  ;
+
+INT
+  :  DIGIT+
+  ;
+
+IDENTIFIER 
+  :  LETTER (LETTER | DIGIT)*
+  ;
+
+COMMENT
+  :   ( '//' ~[\r\n]* '\r'? '\n'
+      | '/*' .*? '*/'
+      ) -> skip
+  ;
+
+WS
+  :  (' ' | '\t' | '\n' | '\r' | '\f')+ -> skip
+  ; 
+
+fragment LETTER : ('a'..'z' | 'A'..'Z');
+fragment DIGIT  : ('0'..'9');
