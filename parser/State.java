@@ -62,4 +62,17 @@ public class State implements Comparable<State> {
         return new Integer(this.name).compareTo(new Integer(o.name));
     }
 
+    // Helper function to add item to the state
+    public void addItem(Item item){
+        this.itemSet.add(item);
+        this.items.add(item);
+    }
+
+    //Helper function to get the set of all items in a state
+    public Set<Item> getItems() {
+        return itemSet;
+    }
+    public List<Item> getItemList() {
+        return items;
+    }
 }

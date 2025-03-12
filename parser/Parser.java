@@ -55,6 +55,10 @@ public class Parser {
   // TODO: Implement this method.
   static public State computeClosure(Item I, Grammar grammar) {
     State closure = new State();
+    closure.addItem(I);
+    Item advanced = I.advance();
+
+
     return closure;
   }
 
@@ -63,6 +67,20 @@ public class Parser {
   //   the given state on the symbol X.
   static public State GOTO(State state, String X, Grammar grammar) {
     State ret = new State();
+    List<Item> itemSet = state.getItemList();
+    for(int i = 0; i <= itemSet.size(); i ++) {
+      Item item = itemSet.get(i);
+      //Might need to do more here
+      if(item.getNextSymbol().equals(X))
+      {
+        if (item.advance() != null) {
+          ret.addItem(item.advance());
+          State closure = computeClosure(item.advance(), grammar);
+          closure.getItems().forEach(ret::addItem);
+        }
+      }
+
+    }
     return ret;
   }
 

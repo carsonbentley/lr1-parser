@@ -35,12 +35,13 @@ public class Main {
     {
 //      // TODO: Become familiar with the Grammar class. You will use it a lot.
       Grammar grammar = new Grammar("data/Simple.cfg");
-//
-//      // Find the closure of [N -> ● X, $]
-      //  Rule rule = grammar.findRule("N -> X");
-       // System.out.println(rule);
-  //    State state = Parser.computeClosure(new Item(rule, 0, Util.EOF), grammar);
-   //   state.setName(0);
+
+
+      //Find the closure of [N -> ● X, $]
+       Rule rule = grammar.findRule("N -> X");
+
+     State state = Parser.computeClosure(new Item(rule, 0, Util.EOF), grammar);
+      state.setName(0);
    //   tests.test(state, "0: [[N -> ● X, $]]");
 //
 //
