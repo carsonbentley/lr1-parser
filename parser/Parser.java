@@ -55,30 +55,37 @@ public class Parser {
   // TODO: Implement this method.
   static public State computeClosure(Item I, Grammar grammar) {
     State closure = new State();
+    closure.addItem(I);
     ArrayList<Rule> rules = grammar.rules;
-    Integer dot = I.getDot();
-    String next = I.getRule().getRhs().get(dot);
+    String next = I.getNextSymbol();
     //add initial item
     closure.addItem(I);
-    grammar.symbols.add(I.getLookahead());
     //get first set
     HashMap<String, HashSet<String>> first = Util.computeFirst(grammar.symbols, grammar.terminals, grammar.rules);
     for (Rule rule : rules) {
       if(rule.getLhs().startsWith(next)){
-        for (String terminal : first.keySet()) {
+
+        HashSet<String> firstBeta = first.get(next);
+
+        if (firstBeta.isEmpty()){
+          firstBeta = first.get(I.getLookahead());
+          if(I.getLookahead().equals("$")){
+            closure.addItem(new Item(rule, 0, I.getLookahead()));
+          }
+        }
+        for (String terminal : firstBeta) {
           if (grammar.isTerminal(terminal)){
             closure.addItem(new Item(rule, 0, terminal));
           }
-
         }
       }
     }
-
-
-
-
-
     return closure;
+  }
+  static public void rClosure(State state, Item I, Grammar grammar){
+    if(state.addItem(I)){
+
+    }
   }
 
   // TODO: Implement this method.

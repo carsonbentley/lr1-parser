@@ -64,19 +64,21 @@ public class Main {
       Grammar grammar = new Grammar("data/Paren.cfg");
 //
 //      // Find the closure of [list -> list ● pair, $]
-//      Rule rule = grammar.findRule("list -> list pair");
-//      State state = Parser.computeClosure(new Item(rule, 1, Util.EOF), grammar);
+      Rule rule = grammar.findRule("list -> list pair");
+      State state = Parser.computeClosure(new Item(rule, 1, Util.EOF), grammar);
+      System.out.println(state.toString());
 //      // [[list -> list ● pair, $], [pair -> ● OPAREN list CPAREN, $], [pair -> ● OPAREN CPAREN, $]]
-//      tests.test(state.size(), 3);
+      tests.test(state.getSize(), 3);
 //
 //      // Find the closure of [pair -> OPAREN ● list CPAREN, $]
-//      rule = grammar.findRule("pair -> OPAREN list CPAREN");
-//      state = Parser.computeClosure(new Item(rule, 1, Util.EOF), grammar);
+      rule = grammar.findRule("pair -> OPAREN list CPAREN");
+      state = Parser.computeClosure(new Item(rule, 1, Util.EOF), grammar);
 //      // [[pair -> OPAREN ● list CPAREN, $], [list -> ● list pair, CPAREN]
 //      //  [list -> ● list pair, OPAREN], [list -> ● pair, OPAREN], [pair -> ● OPAREN list CPAREN, OPAREN]
 //      //  [pair -> ● OPAREN CPAREN, OPAREN], [list -> ● pair, CPAREN], [pair -> ● OPAREN list CPAREN, CPAREN]
 //      //  [pair -> ● OPAREN CPAREN, CPAREN]]
-//      tests.test(state.size(), 9);
+      tests.test(state.getSize(), 9);
+      System.out.println(state.toString());
 //
 //      // Find the start state
 //      Item head = new Item(grammar.startRule, 0, Util.EOF);

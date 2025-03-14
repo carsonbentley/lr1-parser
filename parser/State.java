@@ -63,9 +63,13 @@ public class State implements Comparable<State> {
     }
 
     // Helper function to add item to the state
-    public void addItem(Item item){
-        this.itemSet.add(item);
-        this.items.add(item);
+    public boolean addItem(Item item){
+        if(this.itemSet.add(item)){
+            this.itemSet.add(item);
+            this.items.add(item);
+            return true;
+        }
+        return false;
     }
 
     //Helper function to get the set of all items in a state
@@ -77,6 +81,6 @@ public class State implements Comparable<State> {
     }
 
     public Integer getSize() {
-        return items.size();
+        return itemSet.size();
     }
 }
