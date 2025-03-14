@@ -42,21 +42,23 @@ public class Main {
 
      State state = Parser.computeClosure(new Item(rule, 0, Util.EOF), grammar);
       state.setName(0);
-   //   tests.test(state, "0: [[N -> ● X, $]]");
+      tests.test(state, "0: [[N -> ● X, $]]");
 //
 //
 //      // Find the closure of [N -> ● N X, $]
-//      rule = grammar.findRule("N -> N X");
-//      state = Parser.computeClosure(new Item(rule, 0, Util.EOF), grammar);
-//      state.setName(0);
+      rule = grammar.findRule("N -> N X");
+      state = Parser.computeClosure(new Item(rule, 0, Util.EOF), grammar);
+      state.setName(0);
 //      // [[N -> ● N X, $], [N -> ● N X, X], [N -> ● X, X]]
-//      tests.test(state.size(), 3);
+        System.out.println(state.toString());
+      tests.test(state.getSize(), 3);
 //
 //      // Find the start state
-//      Item head = new Item(grammar.startRule, 0, Util.EOF);
-//      state = Parser.computeClosure(head, grammar);
-//      // [[G -> ● N, $], [N -> ● N X, $], [N -> ● N X, X], [N -> ● X, X], [N -> ● X, $]]
-//      tests.test(state.size(), 5);
+      Item head = new Item(grammar.startRule, 0, Util.EOF);
+      state = Parser.computeClosure(head, grammar);
+        System.out.println(state.toString());
+      // [[G -> ● N, $], [N -> ● N X, $], [N -> ● N X, X], [N -> ● X, X], [N -> ● X, $]]
+      tests.test(state.getSize(), 5);
     }
 //    {
       Grammar grammar = new Grammar("data/Paren.cfg");

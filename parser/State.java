@@ -75,4 +75,8 @@ public class State implements Comparable<State> {
     public List<Item> getItemList() {
         return items;
     }
+
+    public Integer getSize() {
+        return items.size();
+    }
 }

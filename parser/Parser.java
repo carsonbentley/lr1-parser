@@ -55,8 +55,27 @@ public class Parser {
   // TODO: Implement this method.
   static public State computeClosure(Item I, Grammar grammar) {
     State closure = new State();
+    ArrayList<Rule> rules = grammar.rules;
+    Integer dot = I.getDot();
+    String next = I.getRule().getRhs().get(dot);
+    //add initial item
     closure.addItem(I);
-    Item advanced = I.advance();
+    grammar.symbols.add(I.getLookahead());
+    //get first set
+    HashMap<String, HashSet<String>> first = Util.computeFirst(grammar.symbols, grammar.terminals, grammar.rules);
+    for (Rule rule : rules) {
+      if(rule.getLhs().startsWith(next)){
+        for (String terminal : first.keySet()) {
+          if (grammar.isTerminal(terminal)){
+            closure.addItem(new Item(rule, 0, terminal));
+          }
+
+        }
+      }
+    }
+
+
+
 
 
     return closure;
@@ -65,12 +84,14 @@ public class Parser {
   // TODO: Implement this method.
   //   This returns a new state that represents the transition from
   //   the given state on the symbol X.
+  // @PARAMS
+
   static public State GOTO(State state, String X, Grammar grammar) {
     State ret = new State();
     List<Item> itemSet = state.getItemList();
     for(int i = 0; i <= itemSet.size(); i ++) {
       Item item = itemSet.get(i);
-      //Might need to do more here
+      // TODO: Might need to do more here
       if(item.getNextSymbol().equals(X))
       {
         if (item.advance() != null) {
