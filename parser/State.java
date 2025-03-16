@@ -83,4 +83,5 @@ public class State implements Comparable<State> {
     public Integer getSize() {
         return itemSet.size();
     }
+
 }

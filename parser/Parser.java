@@ -52,41 +52,138 @@ public class Parser {
     return states;
   }
 
-  // TODO: Implement this method.
   static public State computeClosure(Item I, Grammar grammar) {
     State closure = new State();
     closure.addItem(I);
-    ArrayList<Rule> rules = grammar.rules;
-    String next = I.getNextSymbol();
-    //add initial item
-    closure.addItem(I);
-    //get first set
-    HashMap<String, HashSet<String>> first = Util.computeFirst(grammar.symbols, grammar.terminals, grammar.rules);
-    for (Rule rule : rules) {
-      if(rule.getLhs().startsWith(next)){
-
-        HashSet<String> firstBeta = first.get(next);
-
-        if (firstBeta.isEmpty()){
-          firstBeta = first.get(I.getLookahead());
-          if(I.getLookahead().equals("$")){
-            closure.addItem(new Item(rule, 0, I.getLookahead()));
+    Queue<Item> queue = new LinkedList<>();
+    queue.add(I);
+    while (!queue.isEmpty()) {
+      Item item = queue.poll();
+      String nextSymbol = item.getNextSymbol();
+      if (nextSymbol.isEmpty() || grammar.isTerminal(nextSymbol)) {
+        continue;
+      }
+      for (Rule rule : grammar.rules) {
+        if (rule.getLhs().equals(nextSymbol)) {
+          Set<String> lookaheads = new HashSet<>();
+          List<String> beta = new ArrayList<>();
+          Rule itemRule = item.getRule();
+          int dotPos = item.getDot();
+          if (dotPos + 1 < itemRule.getRhs().size()) {
+            beta = itemRule.getRhs().subList(dotPos + 1, itemRule.getRhs().size());
           }
-        }
-        for (String terminal : firstBeta) {
-          if (grammar.isTerminal(terminal)){
-            closure.addItem(new Item(rule, 0, terminal));
+          HashMap<String, HashSet<String>> firstSets = Util.computeFirst(
+                  grammar.symbols, grammar.terminals, grammar.rules);
+          Set<String> firstBeta = new HashSet<>();
+          boolean allDeriveEmpty = true;
+          for (String symbol : beta) {
+            HashSet<String> firstOfSymbol = firstSets.get(symbol);
+            for (String term : firstOfSymbol) {
+              if (!term.equals("")) {
+                firstBeta.add(term);
+              }
+            }
+            if (!firstOfSymbol.contains("")) {
+              allDeriveEmpty = false;
+              break;
+            }
+          }
+          if (allDeriveEmpty || beta.isEmpty()) {
+            lookaheads.add(item.getLookahead());
+          } else {
+            lookaheads.addAll(firstBeta);
+          }
+          for (String lookahead : lookaheads) {
+            Item newItem = new Item(rule, 0, lookahead);
+            if (closure.addItem(newItem)) {
+              queue.add(newItem);
+            }
           }
         }
       }
     }
+
     return closure;
   }
-  static public void rClosure(State state, Item I, Grammar grammar){
-    if(state.addItem(I)){
+  /*// TODO: Implement this method.
+  static public State computeClosure(Item I, Grammar grammar) {
+    State closure = new State();
+    rClosure(closure, I, grammar);
+   *//* for (Rule rule : rules) {
+      if(rule.getLhs().startsWith(next)){
 
-    }
+      }
+    }*//*
+    return closure;
   }
+  static public void rClosure(State state, Item I, Grammar grammar) {
+      if(!state.addItem(I)){
+        return;
+      }
+      state.addItem(I);
+      ArrayList<Rule> rules = grammar.rules;
+      String next = I.getNextSymbol();
+      Rule itemRule = I.getRule();
+      HashMap<String, HashSet<String>> first = Util.computeFirst(grammar.symbols, grammar.terminals, rules);
+      List<String> firstBeta = (itemRule.getRhs().subList(I.getDot(), itemRule.getRhs().size()));
+      for (Rule rule : rules) {
+        if (rule.getLhs().startsWith(next)) {
+          boolean addedFirst = false;
+            while(!addedFirst){
+              if(I.getLookahead().equals(Util.EOF)){
+                state.addItem(new Item(rule, 0, I.getLookahead()));
+                rClosure(state, new Item(rule, 0, I.getLookahead()), grammar);
+                addedFirst = true;
+              }
+              for (String symbol : firstBeta) {
+                if(!first.get(symbol).isEmpty()){
+                  for (String firstSymbol : first.get(symbol) ) {
+                    if(grammar.isTerminal(firstSymbol)){
+                      rClosure(state, new Item(rule, 0, firstSymbol), grammar);
+                      state.addItem(new Item(rule, 0, firstSymbol));
+                    }
+                  }
+
+                  addedFirst = true;
+                  break;
+                }
+
+                }
+              if(first.get(grammar.startSymbol).toString().equals(I.getLookahead())){
+
+                rClosure(state, new Item(rule, 0, Util.EOF), grammar);
+                state.addItem(new Item(rule, 0, Util.EOF));
+                addedFirst = true;
+              }
+              }
+        }
+       *//* if (rule.getLhs().startsWith(next)) {
+          System.out.println("starts with");
+          HashSet<String> firstBeta = first.get(next);
+          if (firstBeta.isEmpty()) {
+            firstBeta = first.get(I.getLookahead());
+            if (I.getLookahead().equals("$")) {
+              System.out.println("$ lookahead");
+
+              rClosure(state, new Item(rule, 0, "$"), grammar);
+              return;
+            }
+          }
+          for (String terminal : firstBeta) {
+            if (grammar.isTerminal(terminal)) {
+              System.out.println("bye");
+             rClosure(state, new Item(rule, 0, terminal), grammar);
+             return;
+            }
+          }
+        }
+        else{
+          return;
+        }
+*//*
+      }
+    }
+*/
 
   // TODO: Implement this method.
   //   This returns a new state that represents the transition from
