@@ -30,28 +30,75 @@ public class Parser {
    * actionTable.get(state).get(terminal). You may replace
    * the Integer with a State class if you choose.
    */
-  private final HashMap<Integer, HashMap<String, Action>> actionTable;
+  private HashMap<Integer, HashMap<String, Action>> actionTable;
   /**
    * Goto table for bottom-up parsing. Accessed as gotoTable.get(state).get(nonterminal).
    * You may replace the Integers with State classes if you choose.
    */
-  private final HashMap<Integer, HashMap<String, Integer>> gotoTable;
+  private  HashMap<Integer, HashMap<String, Integer>> gotoTable;
 
   public Parser(String grammarFilename) throws IOException {
     actionTable = new HashMap<>();
     gotoTable = new HashMap<>();
-
     grammar = new Grammar(grammarFilename);
-
-    states = new States();
-
-    // TODO: Call methods to compute the states and parsing tables here.
+    states = getStates();
   }
 
+  // Function creating the set of all states and transitions in a grammar
   public States getStates() {
+    States states = new States();
+    Rule startRule = null;
+    for (Rule rule : grammar.rules) {
+      if (rule.getLhs().equals(grammar.startSymbol)) {
+        startRule = rule;
+        break;
+      }
+    }
+    if (startRule == null) {
+      throw new RuntimeException("Start rule not found in grammar");
+    }
+    Item startItem = new Item(startRule, 0, Util.EOF);
+    State closure = computeClosure(startItem, grammar);
+    int initialStateId = states.addState(closure);
+    Queue<Integer> workList = new LinkedList<>();
+    workList.add(initialStateId);
+    while (!workList.isEmpty()) {
+      int stateId = workList.poll();
+      State state = states.getState(stateId);
+      Set<String> symbols = new HashSet<>();
+      for (Item item : state.getItemList()) {
+        if(item.getNextSymbol() != null){
+          String nextSymbol = item.getNextSymbol();
+          if (nextSymbol != null && !nextSymbol.isEmpty()) {
+            symbols.add(nextSymbol);
+          }
+        }
+      }
+      for (String symbol : symbols) {
+        State gotoState = GOTO(state, symbol, grammar);
+        if (gotoState != null && !gotoState.getItems().isEmpty()) {
+          int existingId = states.findState(gotoState);
+          if (existingId == -1) {
+            int newStateId = states.addState(gotoState);
+            states.addTransition(stateId, symbol, newStateId);
+            workList.add(newStateId);
+          } else {
+            states.addTransition(stateId, symbol, existingId);
+          }
+        }
+      }
+    }
     return states;
   }
-
+  /**
+   * Creates a state containing all possible items out of Item I,
+   * using rules in grammar
+   * @param I: Initial closure item
+   * @param grammar: grammar for closure
+   * @return
+   * State with set of all possible items out of Item I
+   *
+   */
   static public State computeClosure(Item I, Grammar grammar) {
     State closure = new State();
     closure.addItem(I);
@@ -60,199 +107,201 @@ public class Parser {
     while (!queue.isEmpty()) {
       Item item = queue.poll();
       String nextSymbol = item.getNextSymbol();
-      if (nextSymbol.isEmpty() || grammar.isTerminal(nextSymbol)) {
-        continue;
-      }
-      for (Rule rule : grammar.rules) {
-        if (rule.getLhs().equals(nextSymbol)) {
-          Set<String> lookaheads = new HashSet<>();
-          List<String> beta = new ArrayList<>();
-          Rule itemRule = item.getRule();
-          int dotPos = item.getDot();
-          if (dotPos + 1 < itemRule.getRhs().size()) {
-            beta = itemRule.getRhs().subList(dotPos + 1, itemRule.getRhs().size());
-          }
-          HashMap<String, HashSet<String>> firstSets = Util.computeFirst(
-                  grammar.symbols, grammar.terminals, grammar.rules);
-          Set<String> firstBeta = new HashSet<>();
-          boolean allDeriveEmpty = true;
-          for (String symbol : beta) {
-            HashSet<String> firstOfSymbol = firstSets.get(symbol);
-            for (String term : firstOfSymbol) {
-              if (!term.equals("")) {
-                firstBeta.add(term);
+      if(nextSymbol != null){
+        if (nextSymbol.isEmpty() || grammar.isTerminal(nextSymbol)) {
+          continue;
+        }
+        for (Rule rule : grammar.rules) {
+          if (rule.getLhs().equals(nextSymbol)) {
+            Set<String> lookaheads = new HashSet<>();
+            List<String> beta = new ArrayList<>();
+            Rule itemRule = item.getRule();
+            int dotPos = item.getDot();
+            if (dotPos + 1 < itemRule.getRhs().size()) {
+              beta = itemRule.getRhs().subList(dotPos + 1, itemRule.getRhs().size());
+            }
+            HashMap<String, HashSet<String>> firstSets = Util.computeFirst(
+                    grammar.symbols, grammar.terminals, grammar.rules);
+            Set<String> firstBeta = new HashSet<>();
+            boolean allDeriveEmpty = true;
+            for (String symbol : beta) {
+              HashSet<String> firstOfSymbol = firstSets.get(symbol);
+              for (String term : firstOfSymbol) {
+                if (!term.equals("")) {
+                  firstBeta.add(term);
+                }
+              }
+              if (!firstOfSymbol.contains("")) {
+                allDeriveEmpty = false;
+                break;
               }
             }
-            if (!firstOfSymbol.contains("")) {
-              allDeriveEmpty = false;
+            if (allDeriveEmpty || beta.isEmpty()) {
+              lookaheads.add(item.getLookahead());
+            } else {
+              lookaheads.addAll(firstBeta);
+            }
+            for (String lookahead : lookaheads) {
+              Item newItem = new Item(rule, 0, lookahead);
+              if (closure.addItem(newItem)) {
+                queue.add(newItem);
+              }
+            }
+          }
+        }
+      }
+    }
+    return closure;
+  }
+
+  /**
+   * Creates and returns a state containing all items in the goto[state, x] set
+   */
+  static public State GOTO(State state, String X, Grammar grammar) {
+    State result = new State();
+
+    for (Item item : state.getItemList()) {
+      String nextSymbol = item.getNextSymbol();
+      if(nextSymbol != null){
+        if (nextSymbol.equals(X)) {
+          Item advanced = item.advance();
+          if (advanced != null) {
+            State closure = computeClosure(advanced, grammar);
+            for (Item closureItem : closure.getItemList()) {
+              result.addItem(closureItem);
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+  public void buildTables() {
+    for (int i = 0; i < states.size(); i++) {
+      actionTable.put(i, new HashMap<>());
+      gotoTable.put(i, new HashMap<>());
+    }
+    for (int i = 0; i < states.size(); i++) {
+      State state = states.getState(i);
+      for (Item item : state.getItemList()) {
+        String nextSymbol = item.getNextSymbol();
+
+        if (nextSymbol == null || nextSymbol.isEmpty()) {
+          if (item.getRule().getLhs().equals(grammar.startSymbol) &&
+                  item.getLookahead().equals(Util.EOF)) {
+            actionTable.get(i).put(Util.EOF, Action.createAccept());
+          } else {
+            actionTable.get(i).put(item.getLookahead(),
+                    Action.createReduce(item.getRule()));
+          }
+        } else {
+          String symbol = nextSymbol;
+          int nextState = -1;
+          for (Map.Entry<String, Integer> transition : states.getTransitions().get(i).entrySet()) {
+            if (transition.getKey().equals(symbol)) {
+              nextState = transition.getValue();
               break;
             }
           }
-          if (allDeriveEmpty || beta.isEmpty()) {
-            lookaheads.add(item.getLookahead());
-          } else {
-            lookaheads.addAll(firstBeta);
-          }
-          for (String lookahead : lookaheads) {
-            Item newItem = new Item(rule, 0, lookahead);
-            if (closure.addItem(newItem)) {
-              queue.add(newItem);
+          if (nextState != -1) {
+            if (grammar.isTerminal(symbol)) {
+              actionTable.get(i).put(symbol,Action.createShift(nextState));
+            } else {
+              gotoTable.get(i).put(symbol, nextState);
             }
           }
         }
       }
     }
-
-    return closure;
   }
-  /*// TODO: Implement this method.
-  static public State computeClosure(Item I, Grammar grammar) {
-    State closure = new State();
-    rClosure(closure, I, grammar);
-   *//* for (Rule rule : rules) {
-      if(rule.getLhs().startsWith(next)){
-
-      }
-    }*//*
-    return closure;
-  }
-  static public void rClosure(State state, Item I, Grammar grammar) {
-      if(!state.addItem(I)){
-        return;
-      }
-      state.addItem(I);
-      ArrayList<Rule> rules = grammar.rules;
-      String next = I.getNextSymbol();
-      Rule itemRule = I.getRule();
-      HashMap<String, HashSet<String>> first = Util.computeFirst(grammar.symbols, grammar.terminals, rules);
-      List<String> firstBeta = (itemRule.getRhs().subList(I.getDot(), itemRule.getRhs().size()));
-      for (Rule rule : rules) {
-        if (rule.getLhs().startsWith(next)) {
-          boolean addedFirst = false;
-            while(!addedFirst){
-              if(I.getLookahead().equals(Util.EOF)){
-                state.addItem(new Item(rule, 0, I.getLookahead()));
-                rClosure(state, new Item(rule, 0, I.getLookahead()), grammar);
-                addedFirst = true;
-              }
-              for (String symbol : firstBeta) {
-                if(!first.get(symbol).isEmpty()){
-                  for (String firstSymbol : first.get(symbol) ) {
-                    if(grammar.isTerminal(firstSymbol)){
-                      rClosure(state, new Item(rule, 0, firstSymbol), grammar);
-                      state.addItem(new Item(rule, 0, firstSymbol));
-                    }
-                  }
-
-                  addedFirst = true;
-                  break;
-                }
-
-                }
-              if(first.get(grammar.startSymbol).toString().equals(I.getLookahead())){
-
-                rClosure(state, new Item(rule, 0, Util.EOF), grammar);
-                state.addItem(new Item(rule, 0, Util.EOF));
-                addedFirst = true;
-              }
-              }
-        }
-       *//* if (rule.getLhs().startsWith(next)) {
-          System.out.println("starts with");
-          HashSet<String> firstBeta = first.get(next);
-          if (firstBeta.isEmpty()) {
-            firstBeta = first.get(I.getLookahead());
-            if (I.getLookahead().equals("$")) {
-              System.out.println("$ lookahead");
-
-              rClosure(state, new Item(rule, 0, "$"), grammar);
-              return;
-            }
-          }
-          for (String terminal : firstBeta) {
-            if (grammar.isTerminal(terminal)) {
-              System.out.println("bye");
-             rClosure(state, new Item(rule, 0, terminal), grammar);
-             return;
-            }
-          }
-        }
-        else{
-          return;
-        }
-*//*
-      }
-    }
-*/
-
-  // TODO: Implement this method.
-  //   This returns a new state that represents the transition from
-  //   the given state on the symbol X.
-  // @PARAMS
-
-  static public State GOTO(State state, String X, Grammar grammar) {
-    State ret = new State();
-    List<Item> itemSet = state.getItemList();
-    for(int i = 0; i <= itemSet.size(); i ++) {
-      Item item = itemSet.get(i);
-      // TODO: Might need to do more here
-      if(item.getNextSymbol().equals(X))
-      {
-        if (item.advance() != null) {
-          ret.addItem(item.advance());
-          State closure = computeClosure(item.advance(), grammar);
-          closure.getItems().forEach(ret::addItem);
-        }
-      }
-
-    }
-    return ret;
-  }
-
-  // TODO: Implement this method
-  // You will want to use StringBuilder. Another useful method will be String.format: for
-  // printing a value in the table, use
-  //   String.format("%8s", value)
-  // How much whitespace you have shouldn't matter with regard to the tests, but it will
-  // help you debug if you can format it nicely.
   public String actionTableToString() {
+    buildTables();
     StringBuilder builder = new StringBuilder();
+    Set<String> terminals = new HashSet<>(grammar.terminals);
+    terminals.add(Util.EOF);
+    List<String> terminalList = new ArrayList<>(terminals);
+    Collections.sort(terminalList);
+    builder.append(String.format("%8s", "#"));
+    for (String terminal : terminalList) {
+      builder.append(String.format("%8s", terminal));
+    }
+    builder.append("\n");
+    for (int i = 0; i < states.size(); i++) {
+      builder.append(String.format("%8d", i));
+      for (String terminal : terminalList) {
+        Action action = actionTable.get(i).get(terminal);
+        String actionStr = "";
+        if (action != null) {
+          if (action.isShift()) {
+            actionStr = "S " + action.getState();
+          } else if (action.isReduce()) {
+            actionStr = action.getRule().toString().split(" ")[0];
+          } else if (action.isAccept()) {
+            actionStr = "acc";
+          }
+        }
+        builder.append(String.format("%8s", actionStr));
+      }
+      builder.append("\n");
+    }
     return builder.toString();
   }
 
-  // TODO: Implement this method
-  // You will want to use StringBuilder. Another useful method will be String.format: for
-  // printing a value in the table, use
-  //   String.format("%8s", value)
-  // How much whitespace you have shouldn't matter with regard to the tests, but it will
-  // help you debug if you can format it nicely.
   public String gotoTableToString() {
     StringBuilder builder = new StringBuilder();
     return builder.toString();
   }
-
-  // TODO: Implement this method
-  // You should return a list of the actions taken.
   public List<Action> parse(Lexer scanner) throws ParserException {
-    // tokens is the output from the scanner. It is the list of tokens
-    // scanned from the input file.
-    // To get the token type: v.getSymbolicName(t.getType())
-    // To get the token lexeme: t.getText()
+    Stack<Integer> stateStack = new Stack<>();
+    Stack<String> symbolStack = new Stack<>();
+    stateStack.push(0);
+    List<Action> actions = new ArrayList<>();
+    buildTables();
     ArrayList<? extends Token> tokens = new ArrayList<>(scanner.getAllTokens());
     Vocabulary v = scanner.getVocabulary();
-
     Stack<String> input = new Stack<>();
     Collections.reverse(tokens);
     input.add(Util.EOF);
     for (Token t : tokens) {
       input.push(v.getSymbolicName(t.getType()));
     }
-    Collections.reverse(tokens);
-//    System.out.println(input);
 
-    // TODO: Parse the tokens. On an error, throw a ParseException, like so:
-    //    throw ParserException.create(tokens, i)
-    List<Action> actions = new ArrayList<>();
+    while (!input.isEmpty()) {
+      String lookahead = input.peek();
+      int currentState = stateStack.peek();
+
+      Action action = actionTable.get(currentState).get(lookahead);
+
+      if (action == null) {
+        throw new ParserException("Unexpected symbol: " + lookahead + " at state " + currentState);
+      }
+
+      if (action.isShift()) {
+        stateStack.push(action.getState());
+        symbolStack.push(lookahead);
+        input.pop();
+        actions.add(action);
+      } else if (action.isReduce()) {
+        Rule rule = action.getRule();
+        int rhsLength = rule.getRhs().size();
+        for (int i = 0; i < rhsLength; i++) {
+          stateStack.pop();
+          symbolStack.pop();
+        }
+        String lhs = rule.getLhs();
+        int nextState = gotoTable.get(stateStack.peek()).get(lhs);
+        stateStack.push(nextState);
+        symbolStack.push(lhs);
+        actions.add(action);
+      } else if (action.isAccept()) {
+        actions.add(action);
+        break;
+      }
+    }
+
+    if (input.isEmpty()) {
+      throw new ParserException("Unexpected end of input");
+    }
     return actions;
   }
 
